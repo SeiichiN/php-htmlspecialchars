@@ -1,0 +1,290 @@
+\documentclass[uplatex, dvipdfmx]{jsarticle}
+
+\include{begin}
+
+
+\section{htmlspecialchars関数の働き}
+
+htmlspecialchars関数の働きは、以下のようなものである。
+
+\begin{lstlisting}
+ $htmltext = '<div id="wrap"><h1>TEST</h1></div>';
+ echo htmlspecialchars($htmltext, ENT_QUOTE, "UTF-8");
+\end{lstlisting}
+
+\begin{tabular}{|c|}
+\verb!&lt;div id=&quot;wrap&quot;&gt;&lt;h1&gt;TEST&lt;/h1&gt;&lt;/div&gt;! \\
+\end{tabular}
+
+これをブラウザで見ると、 \\
+\fbox{<div id="wrap"><h1>TEST</h1></div>} \\
+ となっている。
+
+ だから、フォームにて、JavaScript や $<$table$>$タグなどの余計な HTMLタグが
+ 入力されたとしても、それを無力化できるのである。
+
+
+ \section{PHP7+MySQL入門ノートでの記述}
+
+ 『PHP7+MySQL入門ノート』では、以下のような記述になっている。
+
+\begin{lstlisting}[caption=discount.php (8-5)]
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <title>金額の計算</title>
+  <link href="../../css/style.css" rel="stylesheet">
+</head>
+<body>
+<div>
+<?php
+  require_once("../../lib/util.php");
+  // 文字エンコードの検証
+  if (!cken($_POST)){
+    $encoding = mb_internal_encoding();
+    $err = "Encoding Error! The expected encoding is " . $encoding ;
+    // エラーメッセージを出して、以下のコードをすべてキャンセルする
+    exit($err);
+  }
+  // HTMLエスケープ（XSS対策）
+  $_POST = es($_POST);
+?>
+
+<?php
+  // エラーメッセージを入れる配列
+  $errors = [];
+  //クーポンコード
+  if (isset($_POST['couponCode'])) {
+    $couponCode = $_POST['couponCode'];
+  } else {
+    // 未設定エラー
+    $couponCode = "";
+  }
+  //商品ID
+  if (isset($_POST['goodsID'])) {
+    $goodsID = $_POST['goodsID'];
+  } else {
+    // 未設定エラー
+    $goodsID = "";
+  }
+?>
+
+<?php
+  // セールデータを読み込む
+  require_once("saleData.php");
+  // 割引率と単価
+  $discount = getCouponRate($couponCode);
+  $tanka = getPrice($goodsID);
+  // 割引率と単価に値があるかどうかチェックする
+  if (is_null($discount)||is_null($tanka)){
+    // エラーメッセージを出して、以下のコードをすべてキャンセルする
+    $err = '<div class="error">不正な操作がありました。</div>';
+    exit($err);
+  }
+?>
+
+<?php
+  // 個数の入力値
+  if(isset($_POST['kosu'])) {
+    $kosu = $_POST['kosu'];
+    // 入力値のチェック
+    if (!ctype_digit($kosu)){
+      // 整数ではないときエラー
+      $errors[] = "個数は整数で入力してください。";
+    }
+  } else {
+    // 未設定エラー
+    $errors[] = "個数が未設定";
+  }
+?>
+
+<?php
+if (count($errors)>0){
+  //エラーがあったとき
+  echo '<ol class="error">';
+  foreach ($errors as $value) {
+    echo "<li>", $value , "</li>";
+  }
+  echo "</ol>";
+} else {
+  // エラーがなかったとき（端数は切り捨て）
+  $price = $tanka * $kosu;
+  $discount_price = floor($price * $discount);
+  $off_price = $price - $discount_price;
+  $off_per = (1 - $discount)*100;
+  // ３桁位取り
+  $tanka_fmt = number_format($tanka);
+  $discount_price_fmt = number_format($discount_price);
+  $off_price_fmt = number_format($off_price);
+  // 表示する
+  echo "単価：{$tanka_fmt}円、", "個数：{$kosu}個", "<br>";
+  echo "金額：{$discount_price_fmt}円", "<br>";
+  echo "（割引：-{$off_price_fmt}円、{$off_per}% OFF)", "<br>";
+}
+?>
+
+<!-- 戻りボタンのフォーム -->
+  <form method="POST" action="discountForm.php">
+    <!-- 隠しフィールドに個数を設定してPOSTする -->
+    <input type="hidden" name="kosu" value="<?php echo $kosu; ?>">
+    <ul>
+      <li><input type="submit" value="戻る"></li>
+    </ul>
+  </form>
+
+</div>
+</body>
+</html> 
+\end{lstlisting}
+ 
+この著者のやり方では、\$\_POST データが送られてきたら、まず、「文字エンコードの検証」を
+おこない(13行目)、次に「HTMLエスケープ」をおこなっている(20行目)。
+
+特に問題だと思われるのは、20行目である。
+
+\fbox{\$\_POST = es(\$\_POST)}
+
+\$\_POST の中味を書き変えてしまっているのである。
+
+この es関数がどのようなものかというと、
+
+\begin{lstlisting}[caption=util.php]
+<?php
+// XSS対策のためのHTMLエスケープ
+function es($data, $charset='UTF-8'){
+  // $dataが配列のとき
+  if (is_array($data)){
+    // 再帰呼び出し
+    return array_map(__METHOD__, $data);
+  } else {
+    // HTMLエスケープを行う
+    return htmlspecialchars($data, ENT_QUOTES, $charset);
+  }
+}
+
+// 配列の文字エンコードのチェックを行う
+function cken(array $data){
+  $result = true;
+  foreach ($data as $key => $value) {
+    if (is_array($value)){
+      // 含まれている値が配列のとき文字列に連結する
+      $value = implode("", $value);
+    }
+    if (!mb_check_encoding($value)){
+      // 文字エンコードが一致しないとき
+      $result = false;
+      // foreachでの走査をブレイクする
+      break;
+    }
+  }
+  return $result;
+}
+// ?> 
+\end{lstlisting}
+
+\$\_POST の中を再帰的に htmlspecialchars関数を実行している。
+
+たとえば、以下のような \$\_POST データが送られてきたとする。
+
+\begin{lstlisting}
+ $_POST = [
+  'name' => '<textarea>悪意</textarea>',
+  'text' => '<script>alert("virus")</script>'
+];
+\end{lstlisting}
+
+これを以下のコードで実行する。
+
+\begin{lstlisting}
+<?php
+require_once('util.php');
+
+$_POST = [
+  'name' => '<textarea>悪意</textarea>',
+  'text' => '<script>alert("virus")</script>'
+];
+
+$_POST = es($_POST);
+?>
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8"/>
+    <title></title>
+  </head>
+  <body>
+    <h1></h1>
+    <h2>print_rで出力</h2>
+    <pre><?php print_r($_POST); ?></pre>
+    <h2>echoで出力</h2>
+    <?php 
+    foreach($_POST as $key => $value) {
+      echo  $key, ' ', $value, '<br>', PHP_EOL;
+    }
+    ?>
+    <script>
+     'use strict';
+
+    </script>
+  </body>
+</html>
+\end{lstlisting}
+
+このようにブラウザに出力される。
+
+\begin{tcolorbox}
+print\_rで出力 \\
+
+Array \\
+( \\
+\verb!    [name] => <textarea>悪意</textarea>! \\
+\verb!    [text] => <script>alert("virus")</script>! \\
+) \\
+
+echoで出力 \\
+\verb!name <textarea>悪意</textarea>! \\
+\verb!text <script>alert("virus")</script>!
+\end{tcolorbox}
+
+しかし、実際は、以下のような文字列になっている。
+
+\begin{verbatim}
+<h2>print_rで出力</h2>
+<pre>Array
+(
+    [name] => &lt;textarea&gt;悪意&lt;/textarea&gt;
+    [text] => &lt;script&gt;alert(&quot;virus&quot;)&lt;/script&gt;
+)
+</pre>
+<h2>echoで出力</h2>
+name &lt;textarea&gt;悪意&lt;/textarea&gt;<br>
+text &lt;script&gt;alert(&quot;virus&quot;)&lt;/script&gt;<br>
+\end{verbatim}
+
+つまり、\$\_POST の中味がエスケープされた文字列に置き換っているのである。
+
+ここでは、\$\_POST の中味をすぐに画面に出力しているからいいが、
+これを MySQL などに保存するとなると、大事になる。
+
+\section{このやり方の危険なところ}
+
+ここでの著者のやり方は、\$\_POST でデータが送られてきたら、とりあえず、
+htmlspecialchars関数を使って \$\_POST を安全なものにしてしまおうという
+やり方である。
+
+初心者の人にこのやり方を教えれば、この通りにすぐに htmlspecialchars関数を使って
+同じようにやってしまうだろう。
+
+しかし、本来は、htmlspecialchars関数は、画面に出力するタイミングで行うもので
+なければならない。
+この著者のやり方では、間違ったタイミングを教えてしまうことになる。
+
+更に危険なのは、\$\_POST を書き変えてしまう点である。
+元のデータは大事にしなければならない。これは避けるべきである。
+
+
+
+\include{end}
+
+%% 修正時刻： Sat Feb 12 09:57:22 2022
