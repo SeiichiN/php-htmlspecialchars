@@ -12,16 +12,19 @@ htmlspecialchars関数の働きは、以下のようなものである。
  echo htmlspecialchars($htmltext, ENT_QUOTE, "UTF-8");
 \end{lstlisting}
 
-\begin{tabular}{|c|}
-\verb!&lt;div id=&quot;wrap&quot;&gt;&lt;h1&gt;TEST&lt;/h1&gt;&lt;/div&gt;! \\
+\vspace{3mm}
+\begin{tabular}{|c|} \hline
+\verb!&lt;div id=&quot;wrap&quot;&gt;&lt;h1&gt;TEST&lt;/h1&gt;&lt;/div&gt;! \\ \hline
 \end{tabular}
+\vspace{3mm}
 
 これをブラウザで見ると、 \\
 \fbox{<div id="wrap"><h1>TEST</h1></div>} \\
  となっている。
 
  だから、フォームにて、JavaScript や $<$table$>$タグなどの余計な HTMLタグが
- 入力されたとしても、それを無力化できるのである。
+ 入力されたとしても、それを無力化できる。
+
 
 
  \section{PHP7+MySQL入門ノートでの記述}
@@ -50,102 +53,104 @@ htmlspecialchars関数の働きは、以下のようなものである。
   // HTMLエスケープ（XSS対策）
   $_POST = es($_POST);
 ?>
-
-<?php
-  // エラーメッセージを入れる配列
-  $errors = [];
-  //クーポンコード
-  if (isset($_POST['couponCode'])) {
-    $couponCode = $_POST['couponCode'];
-  } else {
-    // 未設定エラー
-    $couponCode = "";
-  }
-  //商品ID
-  if (isset($_POST['goodsID'])) {
-    $goodsID = $_POST['goodsID'];
-  } else {
-    // 未設定エラー
-    $goodsID = "";
-  }
-?>
-
-<?php
-  // セールデータを読み込む
-  require_once("saleData.php");
-  // 割引率と単価
-  $discount = getCouponRate($couponCode);
-  $tanka = getPrice($goodsID);
-  // 割引率と単価に値があるかどうかチェックする
-  if (is_null($discount)||is_null($tanka)){
-    // エラーメッセージを出して、以下のコードをすべてキャンセルする
-    $err = '<div class="error">不正な操作がありました。</div>';
-    exit($err);
-  }
-?>
-
-<?php
-  // 個数の入力値
-  if(isset($_POST['kosu'])) {
-    $kosu = $_POST['kosu'];
-    // 入力値のチェック
-    if (!ctype_digit($kosu)){
-      // 整数ではないときエラー
-      $errors[] = "個数は整数で入力してください。";
-    }
-  } else {
-    // 未設定エラー
-    $errors[] = "個数が未設定";
-  }
-?>
-
-<?php
-if (count($errors)>0){
-  //エラーがあったとき
-  echo '<ol class="error">';
-  foreach ($errors as $value) {
-    echo "<li>", $value , "</li>";
-  }
-  echo "</ol>";
-} else {
-  // エラーがなかったとき（端数は切り捨て）
-  $price = $tanka * $kosu;
-  $discount_price = floor($price * $discount);
-  $off_price = $price - $discount_price;
-  $off_per = (1 - $discount)*100;
-  // ３桁位取り
-  $tanka_fmt = number_format($tanka);
-  $discount_price_fmt = number_format($discount_price);
-  $off_price_fmt = number_format($off_price);
-  // 表示する
-  echo "単価：{$tanka_fmt}円、", "個数：{$kosu}個", "<br>";
-  echo "金額：{$discount_price_fmt}円", "<br>";
-  echo "（割引：-{$off_price_fmt}円、{$off_per}% OFF)", "<br>";
-}
-?>
-
-<!-- 戻りボタンのフォーム -->
-  <form method="POST" action="discountForm.php">
-    <!-- 隠しフィールドに個数を設定してPOSTする -->
-    <input type="hidden" name="kosu" value="<?php echo $kosu; ?>">
-    <ul>
-      <li><input type="submit" value="戻る"></li>
-    </ul>
-  </form>
-
-</div>
-</body>
-</html> 
+  ( ...以下、略... )
 \end{lstlisting}
+% <?php
+%   // エラーメッセージを入れる配列
+%   $errors = [];
+%   //クーポンコード
+%   if (isset($_POST['couponCode'])) {
+%     $couponCode = $_POST['couponCode'];
+%   } else {
+%     // 未設定エラー
+%     $couponCode = "";
+%   }
+%   //商品ID
+%   if (isset($_POST['goodsID'])) {
+%     $goodsID = $_POST['goodsID'];
+%   } else {
+%     // 未設定エラー
+%     $goodsID = "";
+%   }
+% ?>
+
+% <?php
+%   // セールデータを読み込む
+%   require_once("saleData.php");
+%   // 割引率と単価
+%   $discount = getCouponRate($couponCode);
+%   $tanka = getPrice($goodsID);
+%   // 割引率と単価に値があるかどうかチェックする
+%   if (is_null($discount)||is_null($tanka)){
+%     // エラーメッセージを出して、以下のコードをすべてキャンセルする
+%     $err = '<div class="error">不正な操作がありました。</div>';
+%     exit($err);
+%   }
+% ?>
+
+% <?php
+%   // 個数の入力値
+%   if(isset($_POST['kosu'])) {
+%     $kosu = $_POST['kosu'];
+%     // 入力値のチェック
+%     if (!ctype_digit($kosu)){
+%       // 整数ではないときエラー
+%       $errors[] = "個数は整数で入力してください。";
+%     }
+%   } else {
+%     // 未設定エラー
+%     $errors[] = "個数が未設定";
+%   }
+% ?>
+
+% <?php
+% if (count($errors)>0){
+%   //エラーがあったとき
+%   echo '<ol class="error">';
+%   foreach ($errors as $value) {
+%     echo "<li>", $value , "</li>";
+%   }
+%   echo "</ol>";
+% } else {
+%   // エラーがなかったとき（端数は切り捨て）
+%   $price = $tanka * $kosu;
+%   $discount_price = floor($price * $discount);
+%   $off_price = $price - $discount_price;
+%   $off_per = (1 - $discount)*100;
+%   // ３桁位取り
+%   $tanka_fmt = number_format($tanka);
+%   $discount_price_fmt = number_format($discount_price);
+%   $off_price_fmt = number_format($off_price);
+%   // 表示する
+%   echo "単価：{$tanka_fmt}円、", "個数：{$kosu}個", "<br>";
+%   echo "金額：{$discount_price_fmt}円", "<br>";
+%   echo "（割引：-{$off_price_fmt}円、{$off_per}% OFF)", "<br>";
+% }
+% ?>
+
+% <!-- 戻りボタンのフォーム -->
+%   <form method="POST" action="discountForm.php">
+%     <!-- 隠しフィールドに個数を設定してPOSTする -->
+%     <input type="hidden" name="kosu" value="<?php echo $kosu; ?>">
+%     <ul>
+%       <li><input type="submit" value="戻る"></li>
+%     </ul>
+%   </form>
+
+% </div>
+% </body>
+% </html> 
  
 この著者のやり方では、\$\_POST データが送られてきたら、まず、「文字エンコードの検証」を
 おこない(13行目)、次に「HTMLエスケープ」をおこなっている(20行目)。
+
+「文字エンコードの検証」は必要だと思うが、「HTMLエスケープ」は、\$\_POSTデータを取得直後にするべきだろうか。
 
 特に問題だと思われるのは、20行目である。
 
 \fbox{\$\_POST = es(\$\_POST)}
 
-\$\_POST の中味を書き変えてしまっているのである。
+\$\_POST の中味を書き変えている。
 
 この es関数がどのようなものかというと、
 
@@ -162,26 +167,28 @@ function es($data, $charset='UTF-8'){
     return htmlspecialchars($data, ENT_QUOTES, $charset);
   }
 }
-
-// 配列の文字エンコードのチェックを行う
-function cken(array $data){
-  $result = true;
-  foreach ($data as $key => $value) {
-    if (is_array($value)){
-      // 含まれている値が配列のとき文字列に連結する
-      $value = implode("", $value);
-    }
-    if (!mb_check_encoding($value)){
-      // 文字エンコードが一致しないとき
-      $result = false;
-      // foreachでの走査をブレイクする
-      break;
-    }
-  }
-  return $result;
-}
-// ?> 
+        ( ...以下、略... )
 \end{lstlisting}
+
+% // 配列の文字エンコードのチェックを行う
+% function cken(array $data){
+%   $result = true;
+%   foreach ($data as $key => $value) {
+%     if (is_array($value)){
+%       // 含まれている値が配列のとき文字列に連結する
+%       $value = implode("", $value);
+%     }
+%     if (!mb_check_encoding($value)){
+%       // 文字エンコードが一致しないとき
+%       $result = false;
+%       // foreachでの走査をブレイクする
+%       break;
+%     }
+%   }
+%   return $result;
+% }
+% // ?> 
+
 
 \$\_POST の中を再帰的に htmlspecialchars関数を実行している。
 
@@ -267,7 +274,7 @@ text &lt;script&gt;alert(&quot;virus&quot;)&lt;/script&gt;<br>
 ここでは、\$\_POST の中味をすぐに画面に出力しているからいいが、
 これを MySQL などに保存するとなると、大事になる。
 
-\section{このやり方の危険なところ}
+\section{このやり方の良くないところ}
 
 ここでの著者のやり方は、\$\_POST でデータが送られてきたら、とりあえず、
 htmlspecialchars関数を使って \$\_POST を安全なものにしてしまおうという
@@ -280,11 +287,11 @@ htmlspecialchars関数を使って \$\_POST を安全なものにしてしまお
 なければならない。
 この著者のやり方では、間違ったタイミングを教えてしまうことになる。
 
-更に危険なのは、\$\_POST を書き変えてしまう点である。
-元のデータは大事にしなければならない。これは避けるべきである。
+更に良くないのは、\$\_POST を書き変えてしまう点である。
+元のデータは大事にしなければならない。これは避けるべきだと思う。
 
 
 
 \include{end}
 
-%% 修正時刻： Sat Feb 12 09:57:22 2022
+%% 修正時刻： Mon Feb 14 07:27:15 2022
