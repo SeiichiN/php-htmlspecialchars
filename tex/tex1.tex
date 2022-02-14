@@ -9,7 +9,7 @@ htmlspecialchars関数の働きは、以下のようなものである。
 
 \begin{lstlisting}
  $htmltext = '<div id="wrap"><h1>TEST</h1></div>';
- echo htmlspecialchars($htmltext, ENT_QUOTE, "UTF-8");
+ echo htmlspecialchars($htmltext, ENT_QUOTES, "UTF-8");
 \end{lstlisting}
 
 \vspace{3mm}
@@ -86,7 +86,7 @@ function es($data, $charset='UTF-8'){
        exit($err);
      }
      // HTMLエスケープ(XSS対策)
-     $_POST = es($_POST);
+     $_POST = es($_POST);                             // <== 
    ?>
 
    ... ( 以下、略 ) ...
@@ -97,11 +97,11 @@ function es($data, $charset='UTF-8'){
 すぐに画面に出力している。
  
 この著者のやり方では、\$\_POST データが送られてきたら、まず、「文字エンコードの検証」を
-おこない(13行目)、次に「HTMLエスケープ」をおこなっている(20行目)。
+おこない(14行目)、次に「HTMLエスケープ」をおこなっている(21行目)。
 
 「文字エンコードの検証」は必要だと思うが、「HTMLエスケープ」は、\$\_POSTデータを取得直後にするべきだろうか。
 
-特に問題だと思われるのは、20行目である。
+特に問題だと思われるのは、21行目である。
 
 \fbox{\$\_POST = es(\$\_POST)}
 
@@ -228,7 +228,7 @@ p503の''insert\_member.php''である。
  if (!cken($_POST)) {
    header("Location:($gobackURL)");
    exit();
- }
+ }                                       // <== <1> es()関数は使っていない
 
  // 簡単なエラー処理
  $errors = [];
@@ -277,7 +277,7 @@ p503の''insert\_member.php''である。
  <body>
  <div>
    <?php
-   $name = $_POST["name"];
+   $name = $_POST["name"];                          //  <== <2> es()関数は使っていない
    $age = $_POST["age"];
    $sex = $_POST["sex"];
    // MySQLデータベースに接続する
@@ -292,8 +292,8 @@ p503の''insert\_member.php''である。
      // プリペアドステートメントを作る
      $stm = $pdo->prepare($sql);
      // プレースホルダに値をバインドする
-     $stm->bindValue(':name', $name, PDO:PARAM_STR);
-     $stm->bindValue(':age', $age, PDO:PARAM_INT);
+     $stm->bindValue(':name', $name, PDO:PARAM_STR);           // <== <3> es()関数は
+     $stm->bindValue(':age', $age, PDO:PARAM_INT);             //       使っていない
      $stm->bindValue(':sex', $sex, PDO:PARAM_STR);
      // SQL文を実行する
      if ($stm->execute()) {
@@ -318,9 +318,9 @@ p503の''insert\_member.php''である。
        foreach ($result as $row) {
          // 1行ずるテーブルに入れる
          echo "<tr>";
-         echo "<td>", es($row['id']), "</td>";
-         echo "<td>", es($row['name']), "</td>";
-         echo "<td>", es($row['age']), "</td>";
+         echo "<td>", es($row['id']), "</td>";                  // <== <4> ここで
+         echo "<td>", es($row['name']), "</td>";                //    es()関数を使って
+         echo "<td>", es($row['age']), "</td>";                 //    いる。
          echo "<td>", es($row['sex']), "</td>";
          echo "</tr>";
        }
@@ -341,25 +341,33 @@ p503の''insert\_member.php''である。
  </html>
 \end{lstlisting}
 
+\noindent
+\verb!<1>! 9行目 \\
 このコードでは、``insertform.html''から送られてきた \$\_POST['name']データ、
 \$\_POST['age']データ、\$\_POST['sex']データについて、
-6行目でエンコードチェックしているが、es()関数は使っていない。
+6行目でエンコードチェックしているが、es()関数は使っていない。\\
 
-58〜60行目では、\$\_POST['name'] は \$name という変数に、\$\_POST['age'] は \$age という変数に、
+\noindent
+\verb!<2>! 58〜60行目 \\
+\$\_POST['name'] は \$name という変数に、\$\_POST['age'] は \$age という変数に、
 \$\_POST['sex'] は \$sex という変数に、格納している。
-その際にも、es()関数は使っていない。
+その際にも、es()関数は使っていない。\\
 
-この \$name、\$age、\$sex はSQL文に埋めこまれて、データベースに登録されている(73行目〜75行目)。
-その際にも、es()関数は使われていない。
+\noindent
+\verb!<3>! 73行目〜75行目 \\
+この \$name、\$age、\$sex はSQL文に埋めこまれて、データベースに登録されている。
+その際にも、es()関数は使われていない。\\
 
-es()関数が使われているのは、99行目〜102行目である。
+\noindent
+\verb!<4>! 99行目〜102行目 \\
+ここではじめて es()関数が使われている。
 
 この部分は、MySQLデータベースから取り出したデータを画面に出力している。
 このデータはデータベースに登録されている全てのデータである。
 
 それらのデータをデータベースに格納する際に、es()関数を使って
 HTML文字列やJavaScriptを無効化させることはやっていない。
-あくまで、画面に出力する間際で es()関数を実行している。
+あくまで、画面に出力する間際で es()関数を実行している。\\
 
 著者は、htmlspecialchars関数の意味も使いどころもわかっているが、
 では、なぜ \fbox{\$\_POST = es(\$\_POST)} なんてことを初心者に
@@ -469,4 +477,4 @@ p272 の nameCheck.php は以下のようになる。
 
 \include{end}
 
-%% 修正時刻： Mon Feb 14 21:05:34 2022
+%% 修正時刻： Tue Feb 15 06:31:57 2022
