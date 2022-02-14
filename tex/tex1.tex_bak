@@ -214,46 +214,30 @@ htmlspecialchars関数を使って \$\_POST を安全なものにしてしまお
 \section{この著者は実は、すぐにHTMLエスケープすべきだとは思っていない}
 
 この著者は、本当は、\$\_POSTデータを取得後すぐに HTMLエスケープすべきだと
-は思っていないのは、以下のコードを見るとわかる。
+は思っていないのか、以下のコードを見るとわかる。
 
 
-p503の''insert\_member.php''である。
+p499の''search.php''である。
 
-\begin{lstlisting}[caption=insert\_member.php]
+\begin{lstlisting}[caption=search.php]
  <?php
  require_once("../../lib/util.php");
- $gobackURL = "insertform.html";
+ $gobackURL = "searchform.html";
 
  // 文字エンコードの検証
- if (!cken($_POST)) {
+ if (!cken($_POET)) {
    header("Location:($gobackURL)");
    exit();
  }
 
- // 簡単なエラー処理
- $errors = [];
- if (!isset($_POST["name"]) ||($_POST["name"] === "")) {
-   $errors[] = "名前が空です。";
- }
- if (!isset($_POST["age"]) ||(!ctype_digit($_POST["age"] === ""))) {
-   $errors[] = "年齢には数値を入れてください。";
- }
- if (!isset($_POST["sex"]) || !in_array($_POST["age"], ["男", "女"])) {
-   $errors[] = "性別が男または女ではありません。";
+ // nameが未設定、空のときはエラー
+ if (empty($_POST)) {
+   header("Location:searchForm.html");
+   exit();
+ } else if (!isset($_POST["name"]) ||($_POST["name"] === "")) {
+   exit();
  }
 
-// エラーがあったとき
- if (count($errors) > 0) {
-   echo '<ol class="error">';
-   foreach ($errors as $value) {
-     echo "<li>", $value, "</li>";
-   }
-   echo "</ol>";
-   echo "<hr>";
-   echo "<a href=", $gobackURL, ">戻る</a>";
-   exit();
-}
- 
  // データベースユーザ
  $user = 'testuser';
  $password = 'pw4testuser';
@@ -262,14 +246,14 @@ p503の''insert\_member.php''である。
  // MySQLサーバ
  $host = 'localhost:8889';
  // MySQLの DSN文字列
- $dsn = "mysql:host={$host};dbname={$dbname};charset=utf8";
+ $dsn = "mysql:host={$host};dbname={$dbname"};charset=utf8";
  ?>
 
  <!DOCTYPE html>
  <html lang="ja">
  <head>
  <meta charset="utf-8">
- <title>レコード追加</title>
+ <title>名前検索</title>
  <link href="../../css/style.css" rel="stylesheet">
  <!-- テーブル用のスタイルシート -->
  <link href="../../css/tablestyle.css" rel="stylesheet">
@@ -278,8 +262,6 @@ p503の''insert\_member.php''である。
  <div>
    <?php
    $name = $_POST["name"];
-   $age = $_POST["age"];
-   $sex = $_POST["sex"];
    // MySQLデータベースに接続する
    try {
      $pdo = new PDO($dsn, $user, $password);
@@ -288,23 +270,17 @@ p503の''insert\_member.php''である。
      // 例外がスローされる設定にする
      $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERROMDE_EXCEPTION);
      // SQL文をつくる
-     $sql = "INSERT INTO member (name, age, sex) VALUES (:name, :age, :sex)";
+     $sql = "SELECT * FROM member WHERE name LIKE(:name)";
      // プリペアドステートメントを作る
      $stm = $pdo->prepare($sql);
      // プレースホルダに値をバインドする
-     $stm->bindValue(':name', $name, PDO:PARAM_STR);
-     $stm->bindValue(':age', $age, PDO:PARAM_INT);
-     $stm->bindValue(':sex', $sex, PDO:PARAM_STR);
+     $stm->bindValue(':name', "%{$name}", PDO:PARAM_STR);
      // SQL文を実行する
-     if ($stm->execute()) {
-       // レコード追加後のレコードリストを取得する
-       $sql = "SELECT * FROM member";
-       // プリペアドステートメントを作る
-       $stm = $pdo->prepare($sql);
-       // SQL文を実行する
-       $stm->execute();
-       // 結果の取得(連想配列で受け取る)
-       $result = $stm->fetchAll(PDO::FETCH_ASSOC);
+     $stm->execute();
+     // 結果の取得(連想配列で受け取る)
+     $result = $stm->fetchAll(PDO::FETCH_ASSOC);
+     if (count($result) > 0) {
+       echo "名前に「($name)」が含まれているレコード";
        // テーブルのタイトル行
        echo "<table>";
        echo "<thead><tr>";
@@ -327,7 +303,7 @@ p503の''insert\_member.php''である。
        echo "</tbody>";
        echo "</table>";
      } else {
-       echo '<span class="error">追加エラーがありました。</span><br>';
+       echo "名前に「$name」は見つかりませんでした。";
      }
    } catch (Exception $e) {
      echo "<span class="error">エラーがありました。</span><br>";
@@ -341,23 +317,21 @@ p503の''insert\_member.php''である。
  </html>
 \end{lstlisting}
 
-このコードでは、``insertform.html''から送られてきた \$\_POST['name']データ、
-\$\_POST['age']データ、\$\_POST['sex']データについて、
+このコードでは、``searchform.html''から送られてきた \$\_POST['name']
 6行目でエンコードチェックしているが、es()関数は使っていない。
 
-58〜60行目では、\$\_POST['name'] は \$name という変数に、\$\_POST['age'] は \$age という変数に、
-\$\_POST['sex'] は \$sex という変数に、格納している。
+42行目では、\$\_POST['name'] を取り出して \$name という変数に格納している。
 その際にも、es()関数は使っていない。
 
-この \$name、\$age、\$sex はSQL文に埋めこまれて、データベースに登録されている(73行目〜75行目)。
-その際にも、es()関数は使われていない。
+この \$name はSQL文に埋めこまれて、検索を実行している。
 
-es()関数が使われているのは、99行目〜102行目である。
+es()関数が使われているのは、75行目〜78行目である。
 
 この部分は、MySQLデータベースから取り出したデータを画面に出力している。
-このデータはデータベースに登録されている全てのデータである。
+このデータは今POST送信されてきたデータではないが、過去においてPOST送信
+されてきたデータであるだろう。
 
-それらのデータをデータベースに格納する際に、es()関数を使って
+その送られてきたデータをデータベースに格納する際に、es()関数を使って
 HTML文字列やJavaScriptを無効化させることはやっていない。
 あくまで、画面に出力する間際で es()関数を実行している。
 
@@ -381,92 +355,8 @@ htmlspecialchars関数を使う」ということを明確にすべきではな�
 \href{https://ja.stackoverflow.com/questions/2408/%E8%84%86%E5%BC%B1%E6%80%A7%E5%AF%BE%E7%AD%96%E3%81%AB%E3%81%8A%E3%81%91%E3%82%8Bhtmlspecialchars%E3%81%AE%E4%BD%BF%E7%94%A8%E7%AE%87%E6%89%80%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6}
 {脆弱性対策におけるhtmlspecialchars()の使用箇所について}
 
-\section{じゃあ、どう書けばいいか？}
-
-では、どう書けばいいか。
-
-\subsection{util.php の es()関数}
-
-p267 に書かれている util.php の es()関数であるが、\$\_POSTを再帰的に htmlspecialchars()関数を
-実行するなんてことは、必要ない。
-なぜなら、画面出力の時に htmlspecialchars()関数にかけるのであるから、文字列に対してかけることに
-なるからである。配列を配列のまま画面出力することはない。foreach()関数などを使って、文字列を
-取り出して画面に出力するからである。
-
-同じ名前の es()関数だと紛らわしいので h()関数とする。以下のようになる。
-
-\begin{lstlisting}[caption=util.php]
- <?php
- function h($data) {
-   return htmlspecialchars($data, ENT_QUOTES, "UTF-8");
- }
-\end{lstlisting}
-
-Shist\_JIS や EUC、JIS を扱うことはないだろうから、"UTF-8" でいいのではないだろうか？
-
-p272 の nameCheck.php は以下のようになる。
-
-\begin{lstlisting}
- <!DOCTYPE html>
- <html lang="ja">
- <head>
-   <meta charset="UTF-8">
-   <title>フォーム入力チェック</title>
-   <link href="../../css/style.css" rel="stylesheet">
- </head>
- <body>
-   <div>
-
-   <?php
-     reuqire_once("../../lib/util.php");
-     // 文字エンコードの検証
-     if (!cken(%_POST)) {
-       $encoding = mb_internal_encoding();
-       $err = "Encoding Error! The expected encoding is " . $encoding ;
-       // エラーメッセージを出して、以下のコードをすべてキャンセルする
-       exit($err);
-     }                                         // <== <1>
-   ?>
-
-   <?php
-     // エラーフラグ
-     $isError = false;
-     // 名前を取り出す
-     if (isset($_POST['name'])) {
-       $name = trim($_POST['name']);           // <== <2>
-       if ($name === "") {
-         // 空白のときエラー
-         $isError = true;
-       }
-     } else {
-       // 未設定のときエラー
-       $isError = true;
-     }
-  ?>
-
- <?php if ($isError): ?>
-   ... ( 略 ) ...
- <?php else: ?>
-   <!-- エラーがなかったとき -->
-   <span>
-   こんにちは、<?php echo h($name); ?>さん。     // <== <3>
-   </span>
- <?php endif; ?>
-
- </div>
- </body>
- </html>
-\end{lstlisting}
-
-\noindent
-\verb!<1>! --- h()関数はここでは使わない。\\
-\verb!<2>! --- \$\_POST['name'] を \$name に代入。\\
-\verb!<3>! --- 画面に出力するときに h()関数を使う。
-
-この本の中では、いたる所で \fbox{\$\_POST = es(\$\_POST)} としているので、
-ほとんど書き直さねばならないということになる。
 
 
 \include{end}
 
-%% 修正時刻： Mon Feb 14 21:05:34 2022
+%% 修正時刻： Mon Feb 14 16:13:27 2022
