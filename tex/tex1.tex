@@ -29,131 +29,21 @@ htmlspecialchars関数の働きは、以下のようなものである。
 
  \section{PHP7+MySQL入門ノートでの記述}
 
- 『PHP7+MySQL入門ノート』では、以下のような記述になっている。
+『PHP7+MySQL入門ノート』では、p266 で、「htmlspesialchars()を便利に使うためのユーザ定義関数 es()」として以下のような説明がある。
 
-\begin{lstlisting}[caption=discount.php (8-5)]
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8">
-  <title>金額の計算</title>
-  <link href="../../css/style.css" rel="stylesheet">
-</head>
-<body>
-<div>
-<?php
-  require_once("../../lib/util.php");
-  // 文字エンコードの検証
-  if (!cken($_POST)){
-    $encoding = mb_internal_encoding();
-    $err = "Encoding Error! The expected encoding is " . $encoding ;
-    // エラーメッセージを出して、以下のコードをすべてキャンセルする
-    exit($err);
-  }
-  // HTMLエスケープ（XSS対策）
-  $_POST = es($_POST);
-?>
-  ( ...以下、略... )
-\end{lstlisting}
-% <?php
-%   // エラーメッセージを入れる配列
-%   $errors = [];
-%   //クーポンコード
-%   if (isset($_POST['couponCode'])) {
-%     $couponCode = $_POST['couponCode'];
-%   } else {
-%     // 未設定エラー
-%     $couponCode = "";
-%   }
-%   //商品ID
-%   if (isset($_POST['goodsID'])) {
-%     $goodsID = $_POST['goodsID'];
-%   } else {
-%     // 未設定エラー
-%     $goodsID = "";
-%   }
-% ?>
-
-% <?php
-%   // セールデータを読み込む
-%   require_once("saleData.php");
-%   // 割引率と単価
-%   $discount = getCouponRate($couponCode);
-%   $tanka = getPrice($goodsID);
-%   // 割引率と単価に値があるかどうかチェックする
-%   if (is_null($discount)||is_null($tanka)){
-%     // エラーメッセージを出して、以下のコードをすべてキャンセルする
-%     $err = '<div class="error">不正な操作がありました。</div>';
-%     exit($err);
-%   }
-% ?>
-
-% <?php
-%   // 個数の入力値
-%   if(isset($_POST['kosu'])) {
-%     $kosu = $_POST['kosu'];
-%     // 入力値のチェック
-%     if (!ctype_digit($kosu)){
-%       // 整数ではないときエラー
-%       $errors[] = "個数は整数で入力してください。";
-%     }
-%   } else {
-%     // 未設定エラー
-%     $errors[] = "個数が未設定";
-%   }
-% ?>
-
-% <?php
-% if (count($errors)>0){
-%   //エラーがあったとき
-%   echo '<ol class="error">';
-%   foreach ($errors as $value) {
-%     echo "<li>", $value , "</li>";
-%   }
-%   echo "</ol>";
-% } else {
-%   // エラーがなかったとき（端数は切り捨て）
-%   $price = $tanka * $kosu;
-%   $discount_price = floor($price * $discount);
-%   $off_price = $price - $discount_price;
-%   $off_per = (1 - $discount)*100;
-%   // ３桁位取り
-%   $tanka_fmt = number_format($tanka);
-%   $discount_price_fmt = number_format($discount_price);
-%   $off_price_fmt = number_format($off_price);
-%   // 表示する
-%   echo "単価：{$tanka_fmt}円、", "個数：{$kosu}個", "<br>";
-%   echo "金額：{$discount_price_fmt}円", "<br>";
-%   echo "（割引：-{$off_price_fmt}円、{$off_per}% OFF)", "<br>";
-% }
-% ?>
-
-% <!-- 戻りボタンのフォーム -->
-%   <form method="POST" action="discountForm.php">
-%     <!-- 隠しフィールドに個数を設定してPOSTする -->
-%     <input type="hidden" name="kosu" value="<?php echo $kosu; ?>">
-%     <ul>
-%       <li><input type="submit" value="戻る"></li>
-%     </ul>
-%   </form>
-
-% </div>
-% </body>
-% </html> 
+\begin{tcolorbox}
+ ユーザからのデータをブラウザに表示する前に htmlspecialchars() を通して
+ HTMLエスケープを行うことが必須となりますが、この処理を行うために
+ array\_map() をうまく利用したユーザ定義関数を作っておくと便利です。
  
-この著者のやり方では、\$\_POST データが送られてきたら、まず、「文字エンコードの検証」を
-おこない(13行目)、次に「HTMLエスケープ」をおこなっている(20行目)。
+ ...( 略 )...
 
-「文字エンコードの検証」は必要だと思うが、「HTMLエスケープ」は、\$\_POSTデータを取得直後にするべきだろうか。
+ こうすることで、es() は引数が1個の値でも配列でも htmlspecialchars() で
+ 処理できる関数になります。
+\end{tcolorbox}
 
-特に問題だと思われるのは、20行目である。
-
-\fbox{\$\_POST = es(\$\_POST)}
-
-\$\_POST の中味を書き変えている。
-
-この es関数がどのようなものかというと、
-
+この説明のあとに、以下のコードが紹介されている。
+ 
 \begin{lstlisting}[caption=util.php]
 <?php
 // XSS対策のためのHTMLエスケープ
@@ -167,27 +57,57 @@ function es($data, $charset='UTF-8'){
     return htmlspecialchars($data, ENT_QUOTES, $charset);
   }
 }
-        ( ...以下、略... )
 \end{lstlisting}
 
-% // 配列の文字エンコードのチェックを行う
-% function cken(array $data){
-%   $result = true;
-%   foreach ($data as $key => $value) {
-%     if (is_array($value)){
-%       // 含まれている値が配列のとき文字列に連結する
-%       $value = implode("", $value);
-%     }
-%     if (!mb_check_encoding($value)){
-%       // 文字エンコードが一致しないとき
-%       $result = false;
-%       // foreachでの走査をブレイクする
-%       break;
-%     }
-%   }
-%   return $result;
-% }
-% // ?> 
+その後に es()関数をテストするコードが紹介されている。
+このコードを実行することで、htmlspecialchars関数の働きを確認することが
+できる。
+
+で、この es()関数を実際に使用したコードは、p272の nameCheck.php である。
+
+\begin{lstlisting}[caption=nameCheck.php]
+ <!DOCTYPE html>
+ <html lang="ja">
+ <head>
+   <meta charset="UTF-8">
+   <title>フォーム入力チェック</title>
+   <link href="../../css/style.css" rel="stylesheet">
+ </head>
+ <body>
+   <div>
+
+   <?php
+     reuqire_once("../../lib/util.php");
+     // 文字エンコードの検証
+     if (!cken(%_POST)) {
+       $encoding = mb_internal_encoding();
+       $err = "Encoding Error! The expected encoding is " . $encoding ;
+       // エラーメッセージを出して、以下のコードをすべてキャンセルする
+       exit($err);
+     }
+     // HTMLエスケープ(XSS対策)
+     $_POST = es($_POST);
+   ?>
+
+   ... ( 以下、略 ) ...
+     
+\end{lstlisting}
+
+ここでは、\$\_POST 連想配列の中の文字列を HTMLエスケープした後、
+すぐに画面に出力している。
+ 
+この著者のやり方では、\$\_POST データが送られてきたら、まず、「文字エンコードの検証」を
+おこない(13行目)、次に「HTMLエスケープ」をおこなっている(20行目)。
+
+「文字エンコードの検証」は必要だと思うが、「HTMLエスケープ」は、\$\_POSTデータを取得直後にするべきだろうか。
+
+特に問題だと思われるのは、20行目である。
+
+\fbox{\$\_POST = es(\$\_POST)}
+
+\$\_POST の中味を書き変えている。
+
+この es関数がどのようなものかというと、
 
 
 \$\_POST の中を再帰的に htmlspecialchars関数を実行している。
@@ -291,7 +211,152 @@ htmlspecialchars関数を使って \$\_POST を安全なものにしてしまお
 元のデータは大事にしなければならない。これは避けるべきだと思う。
 
 
+\section{この著者は実は、すぐにHTMLエスケープすべきだとは思っていない}
+
+この著者は、本当は、\$\_POSTデータを取得後すぐに HTMLエスケープすべきだと
+は思っていないのか、以下のコードを見るとわかる。
+
+
+p499の''search.php''である。
+
+\begin{lstlisting}[caption=search.php]
+ <?php
+ require_once("../../lib/util.php");
+ $gobackURL = "searchform.html";
+
+ // 文字エンコードの検証
+ if (!cken($_POET)) {
+   header("Location:($gobackURL)");
+   exit();
+ }
+
+ // nameが未設定、空のときはエラー
+ if (empty($_POST)) {
+   header("Location:searchForm.html");
+   exit();
+ } else if (!isset($_POST["name"]) ||($_POST["name"] === "")) {
+   exit();
+ }
+
+ // データベースユーザ
+ $user = 'testuser';
+ $password = 'pw4testuser';
+ // 利用するデータベース
+ $dbName = 'testdb';
+ // MySQLサーバ
+ $host = 'localhost:8889';
+ // MySQLの DSN文字列
+ $dsn = "mysql:host={$host};dbname={$dbname"};charset=utf8";
+ ?>
+
+ <!DOCTYPE html>
+ <html lang="ja">
+ <head>
+ <meta charset="utf-8">
+ <title>名前検索</title>
+ <link href="../../css/style.css" rel="stylesheet">
+ <!-- テーブル用のスタイルシート -->
+ <link href="../../css/tablestyle.css" rel="stylesheet">
+ </head>
+ <body>
+ <div>
+   <?php
+   $name = $_POST["name"];
+   // MySQLデータベースに接続する
+   try {
+     $pdo = new PDO($dsn, $user, $password);
+     // プリペアドステートメントのエミュレーションを無効にする
+     $pdo->setAttribute(PDO::ATTR_EMULATE_PREPARES, false);
+     // 例外がスローされる設定にする
+     $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERROMDE_EXCEPTION);
+     // SQL文をつくる
+     $sql = "SELECT * FROM member WHERE name LIKE(:name)";
+     // プリペアドステートメントを作る
+     $stm = $pdo->prepare($sql);
+     // プレースホルダに値をバインドする
+     $stm->bindValue(':name', "%{$name}", PDO:PARAM_STR);
+     // SQL文を実行する
+     $stm->execute();
+     // 結果の取得(連想配列で受け取る)
+     $result = $stm->fetchAll(PDO::FETCH_ASSOC);
+     if (count($result) > 0) {
+       echo "名前に「($name)」が含まれているレコード";
+       // テーブルのタイトル行
+       echo "<table>";
+       echo "<thead><tr>";
+       echo "<th>", "ID", "</th>";
+       echo "<th>", "名前", "</th>";
+       echo "<th>", "年齢", "</th>";
+       echo "<th>", "性別", "</th>";
+       echo "</tr></thead>";
+       // 値を取り出して行に表示する
+       echo "<tbody>";
+       foreach ($result as $row) {
+         // 1行ずるテーブルに入れる
+         echo "<tr>";
+         echo "<td>", es($row['id']), "</td>";
+         echo "<td>", es($row['name']), "</td>";
+         echo "<td>", es($row['age']), "</td>";
+         echo "<td>", es($row['sex']), "</td>";
+         echo "</tr>";
+       }
+       echo "</tbody>";
+       echo "</table>";
+     } else {
+       echo "名前に「$name」は見つかりませんでした。";
+     }
+   } catch (Exception $e) {
+     echo "<span class="error">エラーがありました。</span><br>";
+     echo $e->getMessage();
+   }
+   ?>
+   <hr>
+   <p><a href="<?php echo $gobackURL ?>">戻る</a></p>
+ </div>
+ </body>
+ </html>
+\end{lstlisting}
+
+このコードでは、``searchform.html''から送られてきた \$\_POST['name']
+6行目でエンコードチェックしているが、es()関数は使っていない。
+
+42行目では、\$\_POST['name'] を取り出して \$name という変数に格納している。
+その際にも、es()関数は使っていない。
+
+この \$name はSQL文に埋めこまれて、検索を実行している。
+
+es()関数が使われているのは、75行目〜78行目である。
+
+この部分は、MySQLデータベースから取り出したデータを画面に出力している。
+このデータは今POST送信されてきたデータではないが、過去においてPOST送信
+されてきたデータであるだろう。
+
+その送られてきたデータをデータベースに格納する際に、es()関数を使って
+HTML文字列やJavaScriptを無効化させることはやっていない。
+あくまで、画面に出力する間際で es()関数を実行している。
+
+著者は、htmlspecialchars関数の意味も使いどころもわかっているが、
+では、なぜ \fbox{\$\_POST = es(\$\_POST)} なんてことを初心者に
+すすめているのだろうか？
+
+「初心者には難しいことを言ってもだめだから、とりあえず \$\_POST を
+エスケープさせとけ」ということだろうか？
+
+htmlspecialchars関数の使いどころは、PHPの初心者が一度は悩むところだと
+思う。その意味では、ここははっきりと、「画面出力の時点で
+htmlspecialchars関数を使う」ということを明確にすべきではないかと
+思う。そして、その関数を使いやすくするために es()関数などと、
+ユーザー定義関数をつくるのだということも。
+
+\section{参考}
+
+以下のサイトが参考になる。
+
+\href{https://ja.stackoverflow.com/questions/2408/%E8%84%86%E5%BC%B1%E6%80%A7%E5%AF%BE%E7%AD%96%E3%81%AB%E3%81%8A%E3%81%91%E3%82%8Bhtmlspecialchars%E3%81%AE%E4%BD%BF%E7%94%A8%E7%AE%87%E6%89%80%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6}
+{脆弱性対策におけるhtmlspecialchars()の使用箇所について}
+
+
 
 \include{end}
 
-%% 修正時刻： Mon Feb 14 07:27:15 2022
+%% 修正時刻： Mon Feb 14 16:13:27 2022
