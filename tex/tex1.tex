@@ -7,10 +7,12 @@
 
 htmlspecialchars関数の働きは、以下のようなものである。
 
-\begin{lstlisting}
+\begin{lstlisting}[numbers=none, language=php]
  $htmltext = '<div id="wrap"><h1>TEST</h1></div>';
  echo htmlspecialchars($htmltext, ENT_QUOTES, "UTF-8");
 \end{lstlisting}
+
+echo関数で出力された文字列は、以下である。
 
 \vspace{3mm}
 \begin{tabular}{|c|} \hline
@@ -44,7 +46,7 @@ htmlspecialchars関数の働きは、以下のようなものである。
 
 この説明のあとに、以下のコードが紹介されている。
  
-\begin{lstlisting}[caption=util.php]
+\begin{lstlisting}[caption=util.php, language=php]
 <?php
 // XSS対策のためのHTMLエスケープ
 function es($data, $charset='UTF-8'){
@@ -65,7 +67,7 @@ function es($data, $charset='UTF-8'){
 
 で、この es()関数を実際に使用したコードは、p272の nameCheck.php である。
 
-\begin{lstlisting}[caption=nameCheck.php]
+\begin{lstlisting}[caption=nameCheck.php, language=php]
  <!DOCTYPE html>
  <html lang="ja">
  <head>
@@ -99,97 +101,43 @@ function es($data, $charset='UTF-8'){
 この著者のやり方では、\$\_POST データが送られてきたら、まず、「文字エンコードの検証」を
 おこない(14行目)、次に「HTMLエスケープ」をおこなっている(21行目)。
 
-「文字エンコードの検証」は必要だと思うが、「HTMLエスケープ」は、\$\_POSTデータを取得直後にするべきだろうか。
+「文字エンコードの検証」は必要だと思うが、
+
+\vspace{3mm}
+{\Large ``HTMLエスケープ''は \$\_POSTデータを取得直後にするべきだろうか ?}
+\vspace{3mm}
 
 特に問題だと思われるのは、21行目である。
 
 \fbox{\$\_POST = es(\$\_POST)}
 
-\$\_POST の中味を書き変えている。
+\vspace{3mm}
+{\Large \$\_POST の中味を書き変えている !}
+\vspace{3mm}
 
 この es関数がどのようなものかというと、
-
-
-\$\_POST の中を再帰的に htmlspecialchars関数を実行している。
+\$\_POST の中を再帰的に htmlspecialchars関数を実行するというものである。
 
 たとえば、以下のような \$\_POST データが送られてきたとする。
 
-\begin{lstlisting}
+\begin{lstlisting}[numbers=none, language=php]
  $_POST = [
   'name' => '<textarea>悪意</textarea>',
   'text' => '<script>alert("virus")</script>'
-];
+ ];
 \end{lstlisting}
 
-これを以下のコードで実行する。
+\verb!$_POST = es($_POST)!とすることで、
+\$\_POSTの中身を、以下のようなHTMLエスケープされた文字列に置き変えている。
+\endnote{\$\_POSTの中身}
 
-\begin{lstlisting}
-<?php
-require_once('util.php');
-
-$_POST = [
-  'name' => '<textarea>悪意</textarea>',
-  'text' => '<script>alert("virus")</script>'
-];
-
-$_POST = es($_POST);
-?>
-<!doctype html>
-<html lang="ja">
-  <head>
-    <meta charset="utf-8"/>
-    <title></title>
-  </head>
-  <body>
-    <h1></h1>
-    <h2>print_rで出力</h2>
-    <pre><?php print_r($_POST); ?></pre>
-    <h2>echoで出力</h2>
-    <?php 
-    foreach($_POST as $key => $value) {
-      echo  $key, ' ', $value, '<br>', PHP_EOL;
-    }
-    ?>
-    <script>
-     'use strict';
-
-    </script>
-  </body>
-</html>
-\end{lstlisting}
-
-このようにブラウザに出力される。
-
-\begin{tcolorbox}
-print\_rで出力 \\
-
-Array \\
-( \\
-\verb!    [name] => <textarea>悪意</textarea>! \\
-\verb!    [text] => <script>alert("virus")</script>! \\
-) \\
-
-echoで出力 \\
-\verb!name <textarea>悪意</textarea>! \\
-\verb!text <script>alert("virus")</script>!
-\end{tcolorbox}
-
-しかし、実際は、以下のような文字列になっている。
-
-\begin{verbatim}
-<h2>print_rで出力</h2>
-<pre>Array
+\begin{lstlisting}[numbers=none, language=php]
+Array
 (
     [name] => &lt;textarea&gt;悪意&lt;/textarea&gt;
     [text] => &lt;script&gt;alert(&quot;virus&quot;)&lt;/script&gt;
 )
-</pre>
-<h2>echoで出力</h2>
-name &lt;textarea&gt;悪意&lt;/textarea&gt;<br>
-text &lt;script&gt;alert(&quot;virus&quot;)&lt;/script&gt;<br>
-\end{verbatim}
-
-つまり、\$\_POST の中味がエスケープされた文字列に置き換っているのである。
+\end{lstlisting}
 
 ここでは、\$\_POST の中味をすぐに画面に出力しているからいいが、
 これを MySQL などに保存するとなると、大事になる。
@@ -198,7 +146,7 @@ text &lt;script&gt;alert(&quot;virus&quot;)&lt;/script&gt;<br>
 
 ここでの著者のやり方は、\$\_POST でデータが送られてきたら、とりあえず、
 htmlspecialchars関数を使って \$\_POST を安全なものにしてしまおうという
-やり方である。
+ものである。
 
 初心者の人にこのやり方を教えれば、この通りにすぐに htmlspecialchars関数を使って
 同じようにやってしまうだろう。
@@ -219,7 +167,10 @@ htmlspecialchars関数を使って \$\_POST を安全なものにしてしまお
 
 p503の''insert\_member.php''である。
 
-\begin{lstlisting}[caption=insert\_member.php]
+\begin{lstlisting}[
+ caption=insert\_member.php,
+ language=php
+]
  <?php
  require_once("../../lib/util.php");
  $gobackURL = "insertform.html";
@@ -376,7 +327,8 @@ HTML文字列やJavaScriptを無効化させることはやっていない。
 「初心者には難しいことを言ってもだめだから、とりあえず \$\_POST を
 エスケープさせとけ」ということだろうか？
 
-この箇所では \$\_POST からデータを取得して、あとは画面に出力する
+p272 の nameCheck.php など、掲載されているサンプルコードのほとんどは、
+\$\_POST からデータを取得して、あとは画面に出力する
 だけだから、\fbox{\$\_POST = es(\$\_POST)} としても問題はないわけで
 ある。画面出力するところで、いちいち \fbox{echo \ es(\$name)} とやるよりは
 楽である。
@@ -396,10 +348,26 @@ HTML文字列やJavaScriptを無効化させることはやっていない。
 たとえば \fbox{\$P\_DATA = es(\$\_POST)} という具合に。
 
 htmlspecialchars関数の使いどころは、PHPの初心者が一度は悩むところだと
-思う。その意味では、ここははっきりと、「画面出力の時点で
-htmlspecialchars関数を使う」ということを明確にすべきではないかと
-思う。そして、その関数を使いやすくするために es()関数などと、
-ユーザー定義関数をつくるのだということも。
+思う。その意味では、ここははっきりと、
+
+\vspace{3mm}
+\hspace{6mm}
+\underline{\Large 画面出力の時点でhtmlspecialchars関数を使う}
+\vspace{3mm}
+
+\noindent
+ということを明確にすべきではないかと思う。
+そして、画面出力するときにいちいち \\
+\hspace{6mm}
+\fbox{echo htmlspecialchars(\$str, ENT\_QUOTES, ``UTF-8'');} \\
+とやるのは大変だから、たとえば、 \\
+\hspace{6mm}
+\fbox{echo h(\$str);} \\
+というふうに、ユーザー定義関数をつくるのだということを初心者に理解して
+もらえればいいと思う。
+
+著者が自分の書くコードで es()関数を使って、\$\_POSTを書き変えて、楽を
+するのは勝手だが、それを初心者の方に勧めないで欲しい。
 
 \section{参考}
 
@@ -412,7 +380,7 @@ htmlspecialchars関数を使う」ということを明確にすべきではな�
 
 では、どう書けばいいか。
 
-\subsection{util.php の es()関数}
+\subsection{util.php の es()関数 を修正する}
 
 p267 に書かれている util.php の es()関数であるが、\$\_POSTを再帰的に htmlspecialchars()関数を
 実行するなんてことは、必要ない。
@@ -431,9 +399,14 @@ p267 に書かれている util.php の es()関数であるが、\$\_POSTを再�
 
 Shist\_JIS や EUC、JIS を扱うことはないだろうから、"UTF-8" でいいのではないだろうか？
 
+\subsection{画面に出力するところで使う}
+
 p272 の nameCheck.php は以下のようになる。
 
-\begin{lstlisting}
+\begin{lstlisting}[
+ caption=nameChack.php,
+ language=php
+]
  <!DOCTYPE html>
  <html lang="ja">
  <head>
@@ -490,10 +463,98 @@ p272 の nameCheck.php は以下のようになる。
 \verb!<2>! --- \$\_POST['name'] を \$name に代入。\\
 \verb!<3>! --- 画面に出力するときに h()関数を使う。
 
+\vspace{3mm}
+\begin{Large}
 この本の中では、いたる所で \fbox{\$\_POST = es(\$\_POST)} としているので、
 ほとんど書き直さねばならないということになる。
+\end{Large}
+\vspace{3mm}
+
+しかし、そんなにたいそうなことでもないので、特に問題にならないと思う。
+書き直すことで、初心者の方にはいい勉強になると思う。
+
+\newpage
+\theendnotes
+
+\$\_POSTの中身を見るには、以下のコードを実行する。
+
+\begin{lstlisting}[
+ caption=showPost.php,
+ language=php
+]
+<?php
+require_once('util.php');
+
+// 仮に以下のような $_POST を用意するとして、
+$_POST = [
+  'name' => '<textarea>悪意</textarea>',
+  'text' => '<script>alert("virus")</script>'
+];
+
+$_POST = es($_POST);
+?>
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8"/>
+    <title>POST</title>
+  </head>
+  <body>
+    <h1>POST</h1>
+    <h2>print_rで出力</h2>
+    <pre><?php print_r($_POST); ?></pre>
+    <h2>echoで出力</h2>
+    <?php 
+    foreach($_POST as $key => $value) {
+      echo  $key, ' ', $value, '<br>', PHP_EOL;
+    }
+    ?>
+  </body>
+</html>
+\end{lstlisting}
+
+このようにブラウザに出力される。
+
+\begin{tcolorbox}
+print\_rで出力 \\
+
+Array \\
+( \\
+\verb!    [name] => <textarea>悪意</textarea>! \\
+\verb!    [text] => <script>alert("virus")</script>! \\
+) \\
+
+echoで出力 \\
+\verb!name <textarea>悪意</textarea>! \\
+\verb!text <script>alert("virus")</script>!
+\end{tcolorbox}
+
+しかし、実際は、以下のような文字列になっている。
+
+\fbox{$>$ php showPost.php}
+
+\begin{lstlisting}[
+ caption=php showPost.php,
+ numbers=none,
+ language=php
+]
+<h2>print_rで出力</h2>
+<pre>Array
+(
+    [name] => &lt;textarea&gt;悪意&lt;/textarea&gt;
+    [text] => &lt;script&gt;alert(&quot;virus&quot;)&lt;/script&gt;
+)
+</pre>
+<h2>echoで出力</h2>
+name &lt;textarea&gt;悪意&lt;/textarea&gt;<br>
+text &lt;script&gt;alert(&quot;virus&quot;)&lt;/script&gt;<br>
+\end{lstlisting}
+
+
+\$\_POST の中味がエスケープされた文字列に置き換っている。
+
 
 
 \include{end}
 
-%% 修正時刻： Tue Feb 15 07:54:01 2022
+%% 修正時刻： Wed Feb 16 08:24:13 2022

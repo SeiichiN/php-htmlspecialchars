@@ -6,7 +6,7 @@ $_POST = [
   'text' => '<script>alert("virus")</script>'
 ];
 
-$P_DATA = es($_POST);
+$_POST = es($_POST);
 ?>
 <!doctype html>
 <html lang="ja">
@@ -17,7 +17,7 @@ $P_DATA = es($_POST);
   <body>
     <h1></h1>
     <h2>print_rで出力</h2>
-    <pre><?php print_r($P_DATA); ?></pre>
+    <pre><?php print_r($_POST); ?></pre>
     <h2>echoで出力</h2>
     <?php 
     foreach($_POST as $key => $value) {
@@ -31,4 +31,4 @@ $P_DATA = es($_POST);
   </body>
 </html>
 
-<?php /* 修正時刻: Tue Feb 15 09:28:08 2022*/
+<?php /* 修正時刻: Wed Feb 16 08:10:39 2022*/
