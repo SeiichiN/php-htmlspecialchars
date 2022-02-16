@@ -8,7 +8,7 @@ phpのhtmlspecialchars関数を使うタイミング
 
 著者は、以下のようなコードを読者にすすめている。
 
-``` php
+```php
 function es($data, $charset='UTF-8'){
   if (is_array($data)){
     return array_map(__METHOD__, $data);

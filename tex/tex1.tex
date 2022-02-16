@@ -320,6 +320,8 @@ p503の''insert\_member.php''である。
 HTML文字列やJavaScriptを無効化させることはやっていない。
 あくまで、画面に出力する間際で es()関数を実行している。\\
 
+\section{なぜこんなコードを初心者に勧めているのか？}
+
 著者は、htmlspecialchars関数の意味も使いどころもわかっているが、
 では、なぜ \fbox{\$\_POST = es(\$\_POST)} なんてことを初心者に
 すすめているのだろうか？
@@ -340,8 +342,8 @@ p272 の nameCheck.php など、掲載されているサンプルコードのほ
 
 しかし、それで初心者は理解できるだろうか？
 初心者は \fbox{\$\_POST = es(\$\_POST)} というコードを丸覚えしてしまうので
-はなかろうか？ 「\$\_POST は最初に es()関数で HTMLエスケープしてしまわなけ
-ればならない」と思うのではなかろうか？
+はなかろうか？ 「\$\_POST は最初に es()関数で HTMLエスケープしてしまったら
+簡単で楽だ」と思うのではなかろうか？
 
 また、\fbox{\$\_POST = es(\$\_POST)} と \$\_POST を書き変えてしまっている
 のは問題だと思う。せめて、他の変数名で格納してほしかった。
@@ -367,14 +369,21 @@ htmlspecialchars関数の使いどころは、PHPの初心者が一度は悩む�
 もらえればいいと思う。
 
 著者が自分の書くコードで es()関数を使って、\$\_POSTを書き変えて、楽を
-するのは勝手だが、それを初心者の方に勧めないで欲しい。
+するのは勝手だが、それを初心者の方に勧めるのはどうかと思う。
 
 \section{参考}
 
 以下のサイトが参考になる。
 
-\href{https://ja.stackoverflow.com/questions/2408/%E8%84%86%E5%BC%B1%E6%80%A7%E5%AF%BE%E7%AD%96%E3%81%AB%E3%81%8A%E3%81%91%E3%82%8Bhtmlspecialchars%E3%81%AE%E4%BD%BF%E7%94%A8%E7%AE%87%E6%89%80%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6}
-{脆弱性対策におけるhtmlspecialchars()の使用箇所について}
+\begin{itemize}
+ \item \href{https://ja.stackoverflow.com/questions/2408/%E8%84%86%E5%BC%B1%E6%80%A7%E5%AF%BE%E7%AD%96%E3%81%AB%E3%81%8A%E3%81%91%E3%82%8Bhtmlspecialchars%E3%81%AE%E4%BD%BF%E7%94%A8%E7%AE%87%E6%89%80%E3%81%AB%E3%81%A4%E3%81%84%E3%81%A6}
+       {脆弱性対策におけるhtmlspecialchars()の使用箇所について}
+ \item \href{https://qiita.com/rana_kualu/items/11cd41de5f0364ba2ee8}
+       {サニタイズ/入力値検証/エスケープの考え方}
+\end{itemize}
+
+
+
 
 \section{じゃあ、どう書けばいいか？}
 
@@ -557,4 +566,4 @@ text &lt;script&gt;alert(&quot;virus&quot;)&lt;/script&gt;<br>
 
 \include{end}
 
-%% 修正時刻： Wed Feb 16 08:24:13 2022
+%% 修正時刻： Thu Feb 17 07:37:42 2022
